@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Page from '../ui/Page';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
-import { generateSpeech, masterAudio, separateAudioStem } from '../../services/geminiService';
-import WaveformPlayer from '../ui/WaveformPlayer'; // Import the new component
+import Page from './Page';
+import Card from './Card';
+import Button from './Button';
+import { generateSpeech, masterAudio, separateAudioStem } from './geminiService';
+import WaveformPlayer from './WaveformPlayer';
 // FIX: Removed 'js-base64' import to use a compliant custom decoder.
 
 interface AudioProductionProps {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Page from '../ui/Page';
-import Tabs from '../ui/Tabs';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
-import { generateImage, editImage, analyzeImage, generateVideo, pollVideoOperation, extendVideo, generateChatResponse, summarizeConversationForVideo } from '../../services/geminiService';
-import { ChatMessage } from '../../types';
+import Page from './Page';
+import Tabs from './Tabs';
+import Card from './Card';
+import Button from './Button';
+import { generateImage, editImage, analyzeImage, generateVideo, pollVideoOperation, extendVideo, generateChatResponse, summarizeConversationForVideo } from './geminiService';
+import { ChatMessage } from './types';
 import { useUndoRedo } from './MusicCreation';
 
 interface VideoCreationProps {

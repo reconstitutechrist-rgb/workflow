@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Page from '../ui/Page';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
-import { generateOrRefineSong, generateInstrumentalTrack } from '../../services/geminiService';
-import { ChatMessage, SongData } from '../../types';
-import WaveformPlayer from '../ui/WaveformPlayer';
+import Page from './Page';
+import Card from './Card';
+import Button from './Button';
+import { generateOrRefineSong, generateInstrumentalTrack } from './geminiService';
+import { ChatMessage, SongData } from './types';
+import WaveformPlayer from './WaveformPlayer';
 
 // --- Audio Helper Functions ---
 

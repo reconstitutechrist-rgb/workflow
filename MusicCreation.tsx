@@ -114,7 +114,7 @@ const RegenerateIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 interface MusicCreationProps {
-  onLyricsGenerated: (lyrics: string, concept: string) => void;
+  onLyricsGenerated: (lyrics: string, concept: string, songData?: SongData) => void;
 }
 
 const initialMessages: ChatMessage[] = [{
@@ -254,7 +254,7 @@ const MusicCreation: React.FC<MusicCreationProps> = ({ onLyricsGenerated }) => {
   const handleProceed = () => {
     if (latestSongData) {
       // The `concept` for other tabs can be derived from the `style` description
-      onLyricsGenerated(latestSongData.lyrics, latestSongData.style);
+      onLyricsGenerated(latestSongData.lyrics, latestSongData.style, latestSongData);
     }
   };
 

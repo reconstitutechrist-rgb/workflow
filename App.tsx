@@ -2,8 +2,9 @@
 import React, { useState, useCallback } from 'react';
 import { Sidebar, SidebarItem } from './Sidebar';
 import { MusicCreationIcon, AudioProductionIcon, VideoCreationIcon, MarketingIcon, AssistantIcon, LogoIcon } from './constants';
+import { SongData } from './types';
 import MusicCreation from './MusicCreation';
-import AudioProduction from './AudioProduction';
+import AudioProductionNew from './AudioProductionNew';
 import VideoCreation from './VideoCreation';
 import SocialMarketing from './SocialMarketing';
 import AiAssistant from './AiAssistant';
@@ -14,10 +15,14 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('create');
   const [generatedLyrics, setGeneratedLyrics] = useState<string>('');
   const [songConcept, setSongConcept] = useState<string>('');
+  const [songData, setSongData] = useState<SongData | undefined>(undefined);
 
-  const handleLyricsGenerated = useCallback((lyrics: string, concept: string) => {
+  const handleLyricsGenerated = useCallback((lyrics: string, concept: string, data?: SongData) => {
     setGeneratedLyrics(lyrics);
     setSongConcept(concept);
+    if (data) {
+      setSongData(data);
+    }
     setActiveView('produce');
   }, []);
 
@@ -26,7 +31,7 @@ const App: React.FC = () => {
       case 'create':
         return <MusicCreation onLyricsGenerated={handleLyricsGenerated} />;
       case 'produce':
-        return <AudioProduction lyrics={generatedLyrics} />;
+        return <AudioProductionNew lyrics={generatedLyrics} songData={songData} />;
       case 'video':
         return <VideoCreation lyrics={generatedLyrics} songConcept={songConcept} />;
       case 'market':

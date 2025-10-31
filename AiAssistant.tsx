@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 // FIX: Removed non-exported type `LiveSession`
 import { GoogleGenAI, LiveServerMessage, Modality, Blob as GenAiBlob } from "@google/genai";
-import Page from '../ui/Page';
-import Tabs from '../ui/Tabs';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
-import { ChatMessage } from '../../types';
-import { startChatStream, translateText, generateChatTitle } from '../../services/geminiService';
+import Page from './Page';
+import Tabs from './Tabs';
+import Card from './Card';
+import Button from './Button';
+import { ChatMessage } from './types';
+import { startChatStream, translateText, generateChatTitle } from './geminiService';
 
 const UserIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>

@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Page from '../ui/Page';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
-import { generateOrRefineSong, generateInstrumentalTrack } from '../../services/geminiService';
-import { ChatMessage, SongData } from '../../types';
-import WaveformPlayer from '../ui/WaveformPlayer';
+import Page from './Page';
+import Card from './Card';
+import Button from './Button';
+import { generateOrRefineSong, generateInstrumentalTrack } from './geminiService';
+import { ChatMessage, SongData } from './types';
+import WaveformPlayer from './WaveformPlayer';
+import MusicPlayerPanel from './MusicPlayerPanel';
+import { getMusicService } from './musicGenerationService';
+import type { SongGenerationResponse } from './musicGenerationService';
 
 // --- Audio Helper Functions ---
 
@@ -114,7 +117,7 @@ const RegenerateIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 interface MusicCreationProps {
-  onLyricsGenerated: (lyrics: string, concept: string) => void;
+  onLyricsGenerated: (lyrics: string, concept: string, songData?: SongData) => void;
 }
 
 const initialMessages: ChatMessage[] = [{
@@ -122,12 +125,21 @@ const initialMessages: ChatMessage[] = [{
     text: "Hello! I'm Song Maker GPT, your creative partner. Describe a feeling, a story, or a style of music you have in mind, and let's create a song together."
 }];
 
+interface GeneratedSong extends SongGenerationResponse {
+  generatedAt: number;
+}
+
 const MusicCreation: React.FC<MusicCreationProps> = ({ onLyricsGenerated }) => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(initialMessages);
   const [chatInput, setChatInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [latestSongData, setLatestSongData] = useState<SongData | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+
+  // Music Panel State
+  const [generatedSongs, setGeneratedSongs] = useState<GeneratedSong[]>([]);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [isGeneratingMusic, setIsGeneratingMusic] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -151,6 +163,27 @@ const MusicCreation: React.FC<MusicCreationProps> = ({ onLyricsGenerated }) => {
     const newMessages = [...chatMessages, userMessage];
     setChatMessages(newMessages);
     setChatInput('');
+
+    // Check if user wants to generate music
+    const musicKeywords = ['generate music', 'create music', 'make music', 'generate audio', 'create audio', 'generate the song', 'create the song', 'make the song', 'generate it', 'create it', 'make it now', 'produce it', 'record it'];
+    const wantsMusic = musicKeywords.some(keyword => userInput.toLowerCase().includes(keyword));
+
+    if (wantsMusic && latestSongData) {
+      // User wants to generate professional music
+      setIsLoading(true);
+
+      const thinkingMessage: ChatMessage = {
+        role: 'model',
+        text: "I'll generate professional music for your song right now! This will take about 1-3 minutes..."
+      };
+      setChatMessages([...newMessages, thinkingMessage]);
+
+      // Generate music in the background
+      handleGenerateProfessionalMusic(latestSongData);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -218,6 +251,93 @@ const MusicCreation: React.FC<MusicCreationProps> = ({ onLyricsGenerated }) => {
   };
 
 
+  const handleGenerateProfessionalMusic = async (songData: SongData) => {
+    if (isGeneratingMusic) return;
+
+    // Check if API is configured
+    if (!process.env.MUSIC_API_KEY || process.env.MUSIC_API_KEY === 'YOUR_MUSIC_API_KEY_HERE') {
+      const errorMessage: ChatMessage = {
+        role: 'model',
+        text: "❌ Music API not configured! To generate professional music, you need to:\n\n1. Get an API key from MusicAPI.ai, Suno API, or Udio API\n2. Add it to your .env.local file as MUSIC_API_KEY\n3. Restart the development server\n\nCheck MUSIC_API_SETUP.md for detailed instructions!"
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+      return;
+    }
+
+    setIsGeneratingMusic(true);
+
+    try {
+      const musicService = getMusicService();
+
+      // Add a progress message
+      const startMessage: ChatMessage = {
+        role: 'model',
+        text: `🎵 Starting music generation for "${songData.title}"...\n\nStyle: ${songData.style}\n\nThis usually takes 1-3 minutes. I'll update you as it progresses!`
+      };
+      setChatMessages(prev => [...prev, startMessage]);
+
+      // Start generation
+      const response = await musicService.generateSong({
+        lyrics: songData.lyrics,
+        style: songData.style,
+        title: songData.title,
+        instrumental: false,
+      });
+
+      // Add queued message
+      const queuedMessage: ChatMessage = {
+        role: 'model',
+        text: `⏳ Song queued! Generation ID: ${response.id}\n\nThe AI is now composing your music...`
+      };
+      setChatMessages(prev => [...prev, queuedMessage]);
+
+      // Poll for completion
+      const completedSong = await musicService.waitForCompletion(
+        response.id,
+        (progress) => {
+          // Update progress in chat
+          if (progress.status === 'generating') {
+            const progressMessage: ChatMessage = {
+              role: 'model',
+              text: `🎼 Still generating... The AI is working on vocals and instruments. Almost there!`
+            };
+            setChatMessages(prev => [...prev, progressMessage]);
+          }
+        },
+        60,
+        5000
+      );
+
+      if (completedSong.status === 'failed') {
+        throw new Error(completedSong.error || 'Music generation failed');
+      }
+
+      // Add completed song to the panel
+      const generatedSong: GeneratedSong = {
+        ...completedSong,
+        generatedAt: Date.now(),
+      };
+      setGeneratedSongs(prev => [generatedSong, ...prev]);
+
+      // Success message
+      const successMessage: ChatMessage = {
+        role: 'model',
+        text: `✅ Your song "${completedSong.title}" is ready! Check the music panel on the right to listen and download it.\n\nYou can download:\n• Complete Song\n• Vocals Only (coming soon)\n• Instrumental Only (coming soon)`
+      };
+      setChatMessages(prev => [...prev, successMessage]);
+
+    } catch (error) {
+      console.error('Failed to generate professional music:', error);
+      const errorMessage: ChatMessage = {
+        role: 'model',
+        text: `❌ Failed to generate music: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease check your API configuration and try again. See MUSIC_API_SETUP.md for help.`
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsGeneratingMusic(false);
+    }
+  };
+
   const handleGenerateMusic = useCallback(async (messageIndex: number) => {
     const message = chatMessages[messageIndex];
     if (!message.songData || !audioContext) return;
@@ -254,7 +374,7 @@ const MusicCreation: React.FC<MusicCreationProps> = ({ onLyricsGenerated }) => {
   const handleProceed = () => {
     if (latestSongData) {
       // The `concept` for other tabs can be derived from the `style` description
-      onLyricsGenerated(latestSongData.lyrics, latestSongData.style);
+      onLyricsGenerated(latestSongData.lyrics, latestSongData.style, latestSongData);
     }
   };
 
@@ -269,9 +389,17 @@ const MusicCreation: React.FC<MusicCreationProps> = ({ onLyricsGenerated }) => {
   };
 
   return (
-    <Page title="Compose with AI" description="Create your next song through a conversation. Describe your idea, refine the lyrics and style, and generate music as you go.">
-      <div className="flex flex-col h-[calc(100vh-14rem)]">
-        <Card className="flex-1 flex flex-col min-h-0">
+    <>
+      {/* Music Player Panel */}
+      <MusicPlayerPanel
+        songs={generatedSongs}
+        isCollapsed={isPanelCollapsed}
+        onToggleCollapse={() => setIsPanelCollapsed(!isPanelCollapsed)}
+      />
+
+      <Page title="Compose with AI" description="Create your next song through a conversation. Describe your idea, refine the lyrics and style, and generate music as you go.">
+        <div className={`flex flex-col h-[calc(100vh-14rem)] transition-all duration-300 ${isPanelCollapsed ? 'mr-12' : 'mr-80 lg:mr-96'}`}>
+          <Card className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {chatMessages.map((msg, i) => (
                   <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
@@ -330,14 +458,15 @@ const MusicCreation: React.FC<MusicCreationProps> = ({ onLyricsGenerated }) => {
                   <Button onClick={handleChatSend} isLoading={isLoading} className="rounded-l-none self-stretch">Send</Button>
               </div>
           </div>
-        </Card>
-      </div>
-      <div className="mt-6 flex justify-center">
-          <Button onClick={handleProceed} variant="primary" size="lg" disabled={!latestSongData}>
-              Proceed to Audio Production &raquo;
-          </Button>
-      </div>
-    </Page>
+          </Card>
+        </div>
+        <div className="mt-6 flex justify-center">
+            <Button onClick={handleProceed} variant="primary" size="lg" disabled={!latestSongData}>
+                Proceed to Audio Production &raquo;
+            </Button>
+        </div>
+      </Page>
+    </>
   );
 };
 

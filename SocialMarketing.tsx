@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Page from '../ui/Page';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
-import { generateMarketingPackage, generateImage, generateVideo, pollVideoOperation } from '../../services/geminiService';
-import { SocialMarketingPackage, SavedCampaign } from '../../types';
-import PostPreview from '../ui/PostPreview';
+import Page from './Page';
+import Card from './Card';
+import Button from './Button';
+import { generateMarketingPackage, generateImage, generateVideo, pollVideoOperation } from './geminiService';
+import { SocialMarketingPackage, SavedCampaign } from './types';
+import PostPreview from './PostPreview';
 
 
 interface SocialMarketingProps {

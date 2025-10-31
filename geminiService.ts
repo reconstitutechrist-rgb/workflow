@@ -1,5 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse, Chat, Type, Modality } from "@google/genai";
-import { LyricsAndConcept, SocialMarketingPackage, ChatMessage, SongData } from '../types';
+import { LyricsAndConcept, SocialMarketingPackage, ChatMessage, SongData } from './types';
 
 let ai: GoogleGenAI;
 
